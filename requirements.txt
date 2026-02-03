@@ -1,0 +1,7 @@
+pyautogui
+pywinauto
+python-can
+opencv-python
+pillow
+requests
+pyserial
