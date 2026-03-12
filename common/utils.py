@@ -6,7 +6,88 @@ import zipfile
 import requests
 import serial
 from pywinauto import Application
-from .config import API_BASE_URL, API_TOKEN, MCU_SERIAL_PORT, MCU_BAUDRATE, SERIAL_TIMEOUT
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from common.config import API_BASE_URL, API_TOKEN, MCU_SERIAL_PORT, MCU_BAUDRATE, SERIAL_TIMEOUT
+
+
+
+def get_diffpack_id(input_workflowId):
+    headers  = headers = {
+        'Authorization': API_TOKEN,
+        'Accept': 'application/json, text/plain, */*',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+    }
+    resp = requests.get(f"{API_BASE_URL}/api/v2/workflows/integration/{input_workflowId}", headers=headers, verify=False,data=None)
+    resp.raise_for_status()
+    workflow_data = resp.json().get('data', {})
+    diff_status = workflow_data.get('diffMsg')
+    if(diff_status is not None):
+        diffpack_id = workflow_data.get('diffId')
+        print(f"diffpack_id: {diffpack_id}")
+        return  f"{diffpack_id}"
+    print(f"diff状态: {diff_status}")
+    return None
+
+def get_diffpack_url(input_workflowId):
+    diffpack_id = get_diffpack_id(input_workflowId)
+    if diffpack_id:
+        headers = {
+            'Authorization': API_TOKEN,
+            'Accept': 'application/json, text/plain, */*',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        }
+        resp = requests.get(f"{API_BASE_URL}/api/v1/workflow/diff-tasks/{diffpack_id}", headers=headers, verify=False, data=None)
+        resp.raise_for_status()
+        raw_data = resp.json().get('data', {})
+        print(f"原始 API 响应数据: {raw_data}") 
+
+        return raw_data.get('downloadUrl')
+    return None
+
+def get_guanzhuang_uuid(input_workflowId):
+    headers = {
+        'Authorization': API_TOKEN,
+        'Accept': 'application/json, text/plain, */*',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+    }   
+    resp = requests.get(f"{API_BASE_URL}/api/v2/workflows/integration/{input_workflowId}", headers=headers, verify=False,data=None)
+    resp.raise_for_status()
+    workflow_data = resp.json().get('data', {})
+    guanzhaung_uuid = workflow_data.get('uuid')
+    return guanzhaung_uuid
+
+def get_guanzhaung_pack_info(input_workflowId):
+    headers = {
+        'Authorization': API_TOKEN,
+        'Accept': 'application/json, text/plain, */*',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+    }   
+    resp = requests.get(f"{API_BASE_URL}/api/v2/workflows/integration/{input_workflowId}", headers=headers, verify=False,data=None)
+    resp.raise_for_status()
+    raw_workflow_data = resp.json()
+    workflow_data = resp.json().get('data', {})
+    # print(f"原始 API 响应数据: {workflow_data}")  # 打印原始数据，帮助调试字段结构
+    #, 'sourceSoc', 'sourceDriver', 'sourceSwitch'
+    # 筛选需要的字段
+    # needed_fields = ['uuid', 'sourceFOTA']
+    guanzhaung_uuid = workflow_data.get('uuid')
+    sourceFOTA = workflow_data.get('sourceFOTA')
+    need_fields = ['sourceMcu', 'sourceSoc', 'sourceSwitch','sourceSwitchB']
+    sub_fields = ['uuid', 'packageName', 'md5Sum']
+
+
+    filtered_data = {}
+    for field in need_fields:
+        if sourceFOTA and field in sourceFOTA and sourceFOTA[field] is not None:
+            item_data = sourceFOTA[field]
+            filtered_data[field] = {sub_field: item_data.get(sub_field) for sub_field in sub_fields}
+        else:
+            filtered_data[field] = None
+    
+    return filtered_data
+    # filtered_data = {k:workflow_data.get(k)  for k in needed_fields}
+    # return raw_workflow_data
+
 
 def clean_old_firmware(directory, file_ext=".bin"):
     """
@@ -61,7 +142,7 @@ def clean_old_firmware(directory, file_ext=".bin"):
         print(f"  没有需要清理的文件")
     else:
         print(f"  共清理 {deleted_count} 个文件")
-
+    
 def get_download_url(input_id, car_model, artifact_type):
     """
     获取下载链接: input_id 就是制品库的 UUID。
@@ -2389,3 +2470,21 @@ def execute_flash_program_4(app, main_window):
         import traceback
         traceback.print_exc()
         return False
+
+
+def test():
+    print("这是 utils.py 文件的测试代码")
+    # guanzhaung_uuid = get_guanzhuang_uuid("73609fe6-69f4-4dd5-879f-88bbac45fcec")
+    # print(f"获取到的数据: {guanzhaung_uuid}")
+    # data = get_guanzhaung_pack_info("73609fe6-69f4-4dd5-879f-88bbac45fcec")
+    # print(f"获取到的数据: {data}")
+
+    # data = get_guanzhaung_pack_info("b0111f02-2ef1-46f1-8d5a-ef24160ed017")
+    # print(f"获取到的数据: {data}")
+    # status =  get_diffpack_id("b0111f02-2ef1-46f1-8d5a-ef24160ed017")
+    # print(f"获取到的数据: {status}")
+    diff_url = get_guanzhaung_pack_info("50114139-0cad-493d-bbb4-9c8b69b5913b")
+    print(f"获取到的数据: {diff_url}")
+    pass
+if __name__ == "__main__":
+    test()

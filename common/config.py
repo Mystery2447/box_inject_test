@@ -13,17 +13,17 @@ SERIAL_TIMEOUT = 3.0
 
 # 2. 车型与路径配置
 CAR_CONFIG = {
-    "P03": {
+    "oriny": {
         "switch_dir": os.path.join(BASE_FLASH_DIR, "P03_SwitchProgrammerTools"),
         "mcu_dir": os.path.join(BASE_FLASH_DIR, "P03_MCUProgrammerTools"),
         "soc_dir": os.path.join(BASE_FLASH_DIR, "P03_SOCProgrammerTools"),
     },
-    "Thor": {
+    "thor": {
         "switch_dir": os.path.join(BASE_FLASH_DIR, "Thoru_SwitchProgrammerTools"),
         "mcu_dir": os.path.join(BASE_FLASH_DIR, "Thoru_MCUProgrammerTools"),
         "soc_dir": os.path.join(BASE_FLASH_DIR, "Thoru_SOCProgrammerTools"),
     },
-    "C01": {
+    "orinx": {
         "switch_dir": os.path.join(BASE_FLASH_DIR, "C01_SwitchProgrammerTools"),
         "mcu_dir": os.path.join(BASE_FLASH_DIR, "C01_MCUProgrammerTools"),
         "soc_dir": os.path.join(BASE_FLASH_DIR, "C01_SOCProgrammerTools"),
@@ -32,5 +32,5 @@ CAR_CONFIG = {
 
 # 3. API 配置 
 API_BASE_URL = "https://prod-artifacts-server.srv.deeproute.cn"
-API_TOKEN = "Bearer eyJraWQiOiJkMDVlMTU5NDJmODM0ZDEzODE0MDgxYzY4YzIxMWY0YiIsInR5cCI6IkpXVCIsImFsZyI6IlJTMjU2In0.eyJ0ZW5hbnRfaWQiOjY4LCJzdWIiOiI0ODg5IiwiZGV2aWNlX2lkIjoiZGVlcHJvdXRlLWxkYXAiLCJpc3MiOiJkcmF1dGgiLCJ0b2tlbl90eXBlIjoiQUNDRVNTIiwiY2xpZW50X2lkIjoiZGVlcHJvdXRlLWxkYXAiLCJzaWQiOiIzMjQxOWJmZC0wNmNlLTQyMDAtYTBjNS1iZjZjZGNmYjhhMmQiLCJhdWQiOiJkZWVwcm91dGUtbGRhcCIsImF1dGhfdGltZSI6MTc3MTg5ODI4MiwidXNlclR5cGUiOiJJTlRFUk5BTCIsImV4cCI6MTc3MzEyMzgzMiwiaWF0IjoxNzcyNTE5MDMyLCJqdGkiOiJkYzI0NDE3YS01NzNiLTQxNjEtYWM3ZS1kODYxOTNlZDUwNzciLCJlbWFpbCI6ImppZXllQGRlZXByb3V0ZS5haSIsInVzZXJuYW1lIjoiamlleWUifQ.RuEdMj5edTaDVKbc5c5Ah3TFDfbmBF5camRlAbi778fYPx5TbssRYS-5lTvWy1JIQ4xqR0aVfcHtXZy1tQLur8Ga5cR71enjyb6j0z-lq5raDqiIow4-_jz-Qt5Wi9sTm2QSmSM8EDlSNaiRwcpizzU8IYr6VmTVx_MK6GJdoNLNqtN7f8Cug9ThEZQg7halIF7IP9sKWLEMDzywxMh2FyDrPrIT53b3VWWwlCwqydZ0vbAA3JhuLwAHVfTPN72IcASZBRUli7FHhx2Ikv4ZIOPXsaWskr8gr6ku9-2VFJQR92XtZlCmjTyaXXJ6Jl8wjaSXfD4Mgf9pOavw939cGg"
+API_TOKEN = "Bearer eyJraWQiOiJkMDVlMTU5NDJmODM0ZDEzODE0MDgxYzY4YzIxMWY0YiIsInR5cCI6IkpXVCIsImFsZyI6IlJTMjU2In0.eyJ0ZW5hbnRfaWQiOjY4LCJzdWIiOiI0ODg5IiwiZGV2aWNlX2lkIjoiZGVlcHJvdXRlLWxkYXAiLCJpc3MiOiJkcmF1dGgiLCJ0b2tlbl90eXBlIjoiQUNDRVNTIiwiY2xpZW50X2lkIjoiZGVlcHJvdXRlLWxkYXAiLCJzaWQiOiI2ZGIzZTI4MC04NjVkLTRkMmItYTExMy0wYTJiY2E0ZjU4MDkiLCJhdWQiOiJkZWVwcm91dGUtbGRhcCIsImF1dGhfdGltZSI6MTc2OTY3NDc1NywidXNlclR5cGUiOiJJTlRFUk5BTCIsImV4cCI6MTc3MzM4MDQ0NiwiaWF0IjoxNzcyNzc1NjQ2LCJqdGkiOiIyOGJhNGY3OS02MzQ2LTQ2YjEtOGE2Zi1hMDgyNzExMDA2OGIiLCJlbWFpbCI6ImppZXllQGRlZXByb3V0ZS5haSIsInVzZXJuYW1lIjoiamlleWUifQ.ilxE5XnolIKCwTLaw2QeGDbRN6UxUWqcqoqa2e09W7o-Q1BBi_2rNrb2zirrOGpKu9EHRZPK7o0ManjjEC_866wGQ8bMZ-Ycx3Fk4MEN7Yf0LTM2FPPtfSbNO58AMTSYqjBn-Rcx0291NZNwqrTlTHHIE8dSWcrDhf8O73s7npvUnDE6ghvGf2wMJwhkptBLZUOZOd2d3W7Bx-0w-IqAG5j0EQjRe4sSyHrCX3ZsipqOfhrBadJf8PXfB0m_zbTck28fx9J9P0NS2T4if_JNnJD7ZTXQPejZ5LQYgrHnlhAPMVUMJk8QL0Kb1J_mNozahwTe3v_7-flqXxh7DcoFEg"
 
