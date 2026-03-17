@@ -127,12 +127,12 @@ def main():
     args = parser.parse_args()
 
     car = args.car
-    if car.lower() not in ('p03', 'thor', 'c01'):
-        print('❌ 不支持的车型，请使用 P03/Thor/C01')
+    if car.lower() not in ('oriny', 'thor', 'orinx'):
+        print('❌ 不支持的车型，请使用 ORINX/THOR/ORINY')
         sys.exit(1)
 
     # 标准化车型名称
-    car_key = car.upper() if car.lower() == 'p03' else car.capitalize()
+    car_key = car.lower() if car.lower() == 'oriny' else car.capitalize()
 
     # 从配置获取 MCU 工具目录
     config = CAR_CONFIG[car_key]

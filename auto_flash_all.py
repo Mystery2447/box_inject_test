@@ -28,7 +28,7 @@ if __name__ == "__main__":
 
 
 
-    archecture = sys.argv[1].strip().upper()
+    archecture = sys.argv[1].strip().lower()
     workflowId = sys.argv[2].strip()
     print(f"架构: {archecture}")
     print(f"workflowId: {workflowId}")
@@ -36,7 +36,7 @@ if __name__ == "__main__":
 
     r.ch_all_off()
     print("✅ 继电器全断开\n")
-    if(archecture =="THOR"):
+    if((pack_info.get("sourceSwitchB",{}) !={})and (archecture == 'thor')):
         flag_switchb_en = True
     else:
         flag_switchb_en = False
@@ -65,13 +65,13 @@ if __name__ == "__main__":
 
     
     print("正在执行 MCU 刷写流程...")
-    # ret = flash_mcu(archecture, pack_info.get('sourceMcu').get('uuid'))
-    # if ret:
-    #     print("✅ MCU 刷写成功")
-    # else:
-    #     print("❌ MCU 刷写失败，流程终止")
-    #     r.close()
-    #     sys.exit(1)
+    ret = flash_mcu(archecture, pack_info.get('sourceMcu').get('uuid'))
+    if ret:
+        print("✅ MCU 刷写成功")
+    else:
+        print("❌ MCU 刷写失败，流程终止")
+        r.close()
+        sys.exit(1)
 
         
 

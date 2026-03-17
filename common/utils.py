@@ -467,6 +467,14 @@ def automate_infineon_flash(app_path, mcu_dir):
             print("❌ MCU 刷写操作失败")
             return False
         
+
+        print("刷写完成，关闭APP")
+        try:
+            app.kill()
+            print("关闭成功")
+        except Exception as e:
+            print(f"关闭失败: {e}")
+
         return True
         
     except Exception as e:
