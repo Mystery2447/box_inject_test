@@ -5,7 +5,7 @@ import paramiko
 download_path = "/tmp/diff_pack_download"
 
 class SshClient:
-    def __init__(self, Architecture=None, password="#7F7d8or"):
+    def __init__(self, Architecture=None, password="#7F7d8or",car_type = None):
         if Architecture is None:
             self.ssh_password = password
             print("debug here1")
@@ -26,7 +26,7 @@ class SshClient:
                   "pls select the architect below:\n"
                   "ORINX\ORINY\THOR\n")
             raise ValueError(f"unkonw architect: {Architecture}")
-
+        self.cartype =car_type
         self.ssh_client = paramiko.SSHClient()
         self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         self.ssh_port = 22
@@ -101,11 +101,16 @@ class SshClient:
     def extract_gwm_version(self):
         """提取 GWM 版本文件内容"""
         data_str = self.execu_cmd("cat /opt/deeproute/driver/config/diagnostic/gwm*")[0]
-        return data_str
+        gwm_version = json.loads(data_str)
+        car_type_lower = self.cartype.lower()
+        for k,v in gwm_version.items():
+            if k.lower() in car_type_lower or car_type_lower in k.lower():
+                return {k:v}
+        return gwm_version
 
     def dem_status(self):
         """获取 DEM 服务状态"""
-        data = self.execu_cmd("systemctl status dem |head -11")[0]
+        data = self.execu_cmd("systemctl status dem |head -15")[0]
         return data
 
     def dem_restart(self, password=None):
@@ -122,7 +127,7 @@ class SshClient:
         stdin.flush()
         print("entered password")
 
-        for i in range(20, 0, -1):
+        for i in range(30, 0, -1):
             print(f"dem restart... be patient...cnt:{i}s  ", end='\r')
             time.sleep(1)
         print("\r\n")

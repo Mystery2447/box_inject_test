@@ -203,8 +203,8 @@ class Serial_device():
 
     def check_mcu_version(self, retries: int = 3) -> Optional[str]:
         """检查MCU版本，增加重试机制"""
-        version_start_mark = "Shell> version\r\r\n"
-        
+        version_start_mark = "Shell> version\r\n"
+        extracted_content=None
         for _ in range(retries):
             # 发送指令（确保结尾换行正确）
             if not self.send_data("version\r\n"):
@@ -225,7 +225,7 @@ class Serial_device():
                 continue
 
             content_start = start_index + len(version_start_mark)
-            content_end = data.find(" ", content_start)
+            content_end = data.find("Compile", content_start)
             if content_end == -1:
                 extracted_content = data[content_start:].strip()
             else:

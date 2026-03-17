@@ -9,6 +9,14 @@ def execute(command: str) -> None:
         print(command)
         subprocess.run(command, shell=True)
 
+def get_avail_space():
+    cmd = "df -h / | awk 'NR==2 {print $4}'"
+    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+    result = result.stdout.strip()
+    if result == '0':
+        print("no space left... clean space start")
+        
+    print(result,type(result))
 
 
 def set_network(net:str):
@@ -109,19 +117,20 @@ def inject_default_key():
     ...
 
 if __name__ == "__main__":
-    if len(sys.argv) >1:
-        net = sys.argv[1]
-        print(net)
-    else:
-        net = "enx207bd51a13cc"
-        print("using default network card...")
-    with open("/proc/net/dev") as f:
-         if net not in f.read():
-              print(f"[ERROR]:network card {net} don`t exist!!!check the network configuration")
-              sys.exit(-1)
+    get_avail_space()
+    # if len(sys.argv) >1:
+    #     net = sys.argv[1]
+    #     print(net)
+    # else:
+    #     net = "enx207bd51a13cc"
+    #     print("using default network card...")
+    # with open("/proc/net/dev") as f:
+    #      if net not in f.read():
+    #           print(f"[ERROR]:network card {net} don`t exist!!!check the network configuration")
+    #           sys.exit(-1)
 
-    set_network(net)
-    inject_other_key()
+    # set_network(net)
+    # inject_other_key()
 
 
     ...

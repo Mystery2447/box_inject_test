@@ -1,4 +1,7 @@
 import sys
+import subprocess
+import os
+import re
 import time
 import json
 import inject_key
@@ -6,6 +9,85 @@ from ssh_client import SshClient
 from doip import DoipClient
 from my_serial import Serial_device
 from feishu import FeishuRobot, FeishuSheetAPI
+from diff_pack_get import DiffPackClient
+
+soc_flash_en = False
+
+class Prework():
+    def __init__(self,net:str):
+        self.net = net
+        pass
+    def execute(self,command:str):
+        try:
+            ret = subprocess.run(
+                command, 
+                shell=True, 
+                capture_output=True, 
+                text=True,
+                timeout=10  # 添加超时
+            )
+            
+            # 检查返回码
+            if ret.returncode == 0:
+                return ret.stdout  # 修复拼写错误
+            else:
+                # 返回错误信息，同时包含 stdout 和 stderr
+                error_msg = f"命令执行失败 (返回码: {ret.returncode})\n"
+                if ret.stderr:
+                    error_msg += f"错误: {ret.stderr}\n"
+                if ret.stdout:
+                    error_msg += f"输出: {ret.stdout}"
+                return error_msg
+                
+        except subprocess.TimeoutExpired:
+            return "错误: 命令执行超时"
+        except Exception as e:
+            return f"错误: {e}"    
+    def doip_net_setup(self):
+        self.execute(f"sudo ip link add link {self.net} name mgbe3_0.2 type vlan id 2 >/dev/null 2>&1 || true")
+        self.execute(f"sudo ip link set mgbe3_0.2 type vlan egress 0:2 1:2 2:2 3:2 4:2 5:2 6:2 7:2")
+        self.execute(f"sudo ip address add 172.16.2.58/16 dev mgbe3_0.2 >/dev/null 2>&1 || true")
+        self.execute(f"sudo ip link set dev mgbe3_0.2 address 02:47:57:4d:00:58")
+        self.execute(f"sudo ip link set dev mgbe3_0.2 up")
+        print("network setting complete...")
+    def key_inject_net_setup(self):
+        self.execute(f"sudo ip link add link {self.net} name mgbe3_0.5 type vlan id 5 >/dev/null 2>&1 || true")
+        self.execute(f"sudo ip link set mgbe3_0.5 type vlan egress 0:2 1:2 2:2 3:2 4:2 5:2 6:2 7:2")
+        self.execute(f"sudo ip address add 172.16.5.58/16 dev mgbe3_0.5 >/dev/null 2>&1 || true")
+        self.execute(f"sudo ip link set dev mgbe3_0.5 address 02:47:57:4d:00:58")
+        self.execute(f"sudo ip link set dev mgbe3_0.5 up")
+        print("network setting complete...")
+    def network_prepare(self):
+        self.doip_net_setup()
+        self.key_inject_net_setup()
+    def clean_space(self):
+        self.execute("sudo rm -rf /tmp/flash_content/*")
+        self.execute("sudo rm -rf /tmp/diff_pack_download/*")
+    def space_check(self):
+        ret = self.execute("df -h / | awk 'NR==2 {print $4}'")
+        avail_space = ret.strip()
+        if 'G' or 'M' or 'K' in avail_space:
+            if 'G' in avail_space:
+                data = int(avail_space.replace("G",""))
+                if data <= 100:
+                    print(f"space left {data}GB,need 100GB")
+                else:
+                    return 0
+            elif 'M' in avail_space:
+                data = int(avail_space.replace("M",""))
+                print(f"space left {data}MB,need 100GB")
+                return -1 
+            elif 'K' in avail_space:
+                data = int(avail_space.replace("K",""))
+                print(f"space left {data}KB,need 100GB")
+                return -1 
+        elif avail_space == '0':
+            print(f"space left 0,need 100GB")
+            return -1 
+        return -1
+
+
+    
 
 
 def serial_check():
@@ -55,6 +137,7 @@ def inject_key_check(car_type = 'C01',Architecture = 'ORINX'):
     
 def doip_check(car_type = 'C01'):
     doip_test = DoipClient()
+    doip_test.set_network("enx207bd51a13cc")
     doip_test.car_type = car_type
     doip_test.client_setup()
     doip_test.route_active()
@@ -101,13 +184,30 @@ def AFTER_OTA_CHECK(car_type='ORINX'):
 
 if __name__ =='__main__':
     print("first para is architect ,second is car_type")
-    if len(sys.argv)>2:
+    if len(sys.argv)>3:
         car_TEST = sys.argv[1]  #orin平台
         car_type = sys.argv[2]  #具体车型
+        flow_id  = sys.argv[3] #灌装包工作流id
     else:
         car_TEST = 'ORINX'
         car_type = 'C01'
+        flow_id = None
+        raise Exception("pls input correct para!!!")
+    clean = Prework()
+    if(clean.space_check()!=0):
+        clean.clean_space()
+        if(clean.space_check()!=0):
+            print("/tmp space need 100GB,pls check it.")
+            sys.exit(-1)
     feishu_test = FeishuRobot("https://open.feishu.cn/open-apis/bot/v2/hook/86f13735-aa8e-4dc1-aa6a-258177111a1e")
+    diff_client = DiffPackClient(Architecture=car_TEST, workflow_id=flow_id)
+    inject_pack_uuid = diff_client.get_injectpack_uuid()
+    if(soc_flash_en):
+        print("[DEBUG]start to flash SOC")
+        os.system(f"echo 'deeproute@123'|sudo -S ~/Documents/autoflash.sh {inject_pack_uuid}")
+        time.sleep(60)
+        feishu_test.send_text("SOC flash success\r\n")
+
     mcu_version,switch_version = serial_check()
     inject_key_check(car_type=car_type,Architecture=car_TEST)
 
@@ -149,10 +249,13 @@ GWM 版本：{test_info['file_gwm_version']}\r\n\
 \r\n\
 start to ota test..."
 )
-    for i in range(80,0,-1):
+    for i in range(60,0,-1):
         print(f"dem init cnt:{i}s  ",end='\r')
         time.sleep(1)
-  
+    diff_url = diff_client.get_diffpack_url()
+    diff_client.download_diffpack(diff_url)
+    diff_client.scp_diffpack()
+
     ret = doip_OTA(car_TEST)
     if ret == 'success OTA':
         feishu_test.send_text(ret)

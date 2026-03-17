@@ -2,12 +2,13 @@ import requests
 import os
 import sys
 API_BASE_URL = "https://prod-artifacts-server.srv.deeproute.cn"
-API_TOKEN = "Bearer eyJraWQiOiJkMDVlMTU5NDJmODM0ZDEzODE0MDgxYzY4YzIxMWY0YiIsInR5cCI6IkpXVCIsImFsZyI6IlJTMjU2In0.eyJ0ZW5hbnRfaWQiOjY4LCJzdWIiOiI0ODg5IiwiZGV2aWNlX2lkIjoiZGVlcHJvdXRlLWxkYXAiLCJpc3MiOiJkcmF1dGgiLCJ0b2tlbl90eXBlIjoiQUNDRVNTIiwiY2xpZW50X2lkIjoiZGVlcHJvdXRlLWxkYXAiLCJzaWQiOiIzMjQxOWJmZC0wNmNlLTQyMDAtYTBjNS1iZjZjZGNmYjhhMmQiLCJhdWQiOiJkZWVwcm91dGUtbGRhcCIsImF1dGhfdGltZSI6MTc3MTg5ODI4MiwidXNlclR5cGUiOiJJTlRFUk5BTCIsImV4cCI6MTc3MzEyMzgzMiwiaWF0IjoxNzcyNTE5MDMyLCJqdGkiOiJkYzI0NDE3YS01NzNiLTQxNjEtYWM3ZS1kODYxOTNlZDUwNzciLCJlbWFpbCI6ImppZXllQGRlZXByb3V0ZS5haSIsInVzZXJuYW1lIjoiamlleWUifQ.RuEdMj5edTaDVKbc5c5Ah3TFDfbmBF5camRlAbi778fYPx5TbssRYS-5lTvWy1JIQ4xqR0aVfcHtXZy1tQLur8Ga5cR71enjyb6j0z-lq5raDqiIow4-_jz-Qt5Wi9sTm2QSmSM8EDlSNaiRwcpizzU8IYr6VmTVx_MK6GJdoNLNqtN7f8Cug9ThEZQg7halIF7IP9sKWLEMDzywxMh2FyDrPrIT53b3VWWwlCwqydZ0vbAA3JhuLwAHVfTPN72IcASZBRUli7FHhx2Ikv4ZIOPXsaWskr8gr6ku9-2VFJQR92XtZlCmjTyaXXJ6Jl8wjaSXfD4Mgf9pOavw939cGg"
+API_TOKEN = "Bearer adas-farm_77868_+ae2dmmu48degsjfayynp2n9o5ca3bbr"
 DOWNLOAD_PATH = "/tmp/diff_pack_download"
 
 class DiffPackClient:
     def __init__(self,Architecture=None,workflow_id=None):
         self.architecture = Architecture
+        self.switch_en = False
         if self.architecture is None:
             self.ssh_password = "#7F7d8or"
         elif self.architecture == 'ORINX':
@@ -16,6 +17,7 @@ class DiffPackClient:
             self.ssh_password = "#7F7d8or"
         elif self.architecture == "THOR":
             self.ssh_password = "G7#kL2@m"
+            self.switch_en = True
         else:
             print("[ERROR]:wrong architect!\n"
                   "pls select the architect below:\n"
@@ -59,32 +61,102 @@ class DiffPackClient:
         print(f"diff状态: {diff_status}")
         return None
     def download_diffpack(self, url):
+        if url is None:
+            print("No diffpack URL found.")
+            raise ValueError("No diffpack URL found.")
         os.system(f"wget -O {self.download_path}/a.zip '{url}' --no-check-certificate")
 
     def scp_diffpack(self):
-        # Implementation for SCP diffpack
-        os.system(f"sshpass -p '{self.ssh_password}' scp {self.download_path}/a.zip nvidia@172.16.2.14:/data/a.zip")
+        # os.system(f"sshpass -p '{self.ssh_password}' scp {self.download_path}/a.zip nvidia@172.16.2.14:/data/a.zip")
+        os.system(f"sshpass -p '{self.ssh_password}' scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null {self.download_path}/a.zip nvidia@172.16.2.14:/data/a.zip")
+    def get_injectpack_uuid(self):
+        # Implementation for getting injectpack UUID
+        headers = {
+                'Authorization': API_TOKEN,
+                'Accept': 'application/json, text/plain, */*',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            }
+        resp = requests.get(f"{API_BASE_URL}/api/v2/workflows/integration/{self.workflow_id}", headers=headers, verify=False,data=None)
+        resp.raise_for_status()
+        uuid = resp.json().get('data').get("uuid")
+        print(f"原始 API 响应数据: {uuid}")
+        return uuid
+    def get_injectpack_info(self):
+        # Implementation for getting injectpack info
+        headers = {
+                'Authorization': API_TOKEN,
+                'Accept': 'application/json, text/plain, */*',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            }
+        filter_driver = {"fullName":"sourceDriver",
+                         "gwmShortName":"sourceDriver",
+                         "packageName":"sourceDsvSoc",            
+                         }
+        filter_mcu = {
+                            "uuid":"sourceMcu",
+                            "packageName":"sourceMcu",  
+        }
+        filter_switch = {
+                            "uuid":"sourceSwitch",
+                            "packageName":"sourceSwitch",   
+        }
+        resp = requests.get(f"{API_BASE_URL}/api/v2/workflows/integration/{self.workflow_id}", headers=headers, verify=False,data=None)
+        resp.raise_for_status()
+        raw_data = resp.json().get('data').get("sourceFOTA")
+        # print(f"原始 API 响应数据: {raw_data}")
+        if(self.switch_en):
+            ret = {
+                "mcu":{
+                    "uuid":raw_data.get("sourceMcu",{}).get("uuid"),
+                    "packageName":raw_data.get("sourceMcu",{}).get("packageName"),
+                },
+                "switch":{
+                    "uuid":raw_data.get("sourceSwitch",{}).get("uuid"),
+                    "packageName":raw_data.get("sourceSwitch",{}).get("packageName"),
+                },
+                "switchb":{
+                    "uuid":raw_data.get("sourceSwitchB",{}).get("uuid"),
+                    "packageName":raw_data.get("sourceSwitchB",{}).get("packageName"),
+                },
+                "driver":{
+                    "fullName":raw_data.get("sourceDriver",{}).get("fullName"),
+                    "gwmShortName":raw_data.get("sourceDriver",{}).get("gwmShortName"),
+                    "socVersion":raw_data.get("sourceSoc").get("sourceDsvSoc",{}).get("packageName"),
+                }
+            }
+        else:
+            ret = {
+                "mcu":{
+                    "uuid":raw_data.get("sourceMcu",{}).get("uuid"),
+                    "packageName":raw_data.get("sourceMcu",{}).get("packageName"),
+                },
+                "switch":{
+                    "uuid":raw_data.get("sourceSwitch",{}).get("uuid"),
+                    "packageName":raw_data.get("sourceSwitch",{}).get("packageName"),
+                },
+                "driver":{
+                    "fullName":raw_data.get("sourceDriver",{}).get("fullName"),
+                    "gwmShortName":raw_data.get("sourceDriver",{}).get("gwmShortName"),
+                    "socVersion":raw_data.get("sourceSoc").get("sourceDsvSoc",{}).get("packageName"),
+                }
+            }
+        print(f"injectpack info: {ret}")
+        return ret
 
 
 
-
-def get_diffpack_url(input_workflowId):
-
-
-
-
-
-    pass
+def test():
+    client = DiffPackClient(Architecture="THOR", workflow_id="86ebf5be-f311-4a2f-9df2-dbc0617cffc4")
+    client.get_injectpack_info()
+    client.get_injectpack_uuid()
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: python diff_pack_get.py <workflowId>")
-        sys.exit(1)
+    test()
+    # if len(sys.argv) != 2:
+    #     print("Usage: python diff_pack_get.py <workflowId>")
+    #     sys.exit(1)
     
-    workflow_id = sys.argv[1]
-    url = get_diffpack_url(workflow_id)
-    if url:
-        print(f"DiffPack Download URL: {url}")
-    else:
-        print("No DiffPack available for the given workflowId.")
+    # workflow_id = sys.argv[1]
+    # client = DiffPackClient(Architecture="THOR", workflow_id=workflow_id)
+    # client.download_diffpack(client.get_diffpack_url())
