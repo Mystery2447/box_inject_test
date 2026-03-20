@@ -161,5 +161,5 @@ class FeishuSheetAPI:
             return []
         
 if __name__ =="__main__":
-    robot = FeishuRobot("https://open.feishu.cn/open-apis/bot/v2/hook/86f13735-aa8e-4dc1-aa6a-258177111a1e")
-    robot.send_text("@Wenhui Zhang")
+    robot = FeishuRobot("https://open.feishu.cn/open-apis/bot/v2/hook/458b4208-1a5b-46c6-b52f-32ce501622a1")
+    robot.send_text("jingcheng下午去人事办下手续。")
