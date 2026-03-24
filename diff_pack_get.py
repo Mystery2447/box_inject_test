@@ -7,7 +7,7 @@ DOWNLOAD_PATH = "/tmp/diff_pack_download"
 
 class DiffPackClient:
     def __init__(self,Architecture=None,workflow_id=None):
-        self.architecture = Architecture
+        self.architecture = Architecture.upper() if Architecture else "NONE"
         self.switch_en = False
         if self.architecture is None:
             self.ssh_password = "#7F7d8or"
@@ -81,7 +81,7 @@ class DiffPackClient:
         uuid = resp.json().get('data').get("uuid")
         print(f"原始 API 响应数据: {uuid}")
         return uuid
-    def get_injectpack_info(self):
+    def get_guanzhuang_pack_info(self):
         # Implementation for getting injectpack info
         headers = {
                 'Authorization': API_TOKEN,
@@ -104,41 +104,34 @@ class DiffPackClient:
         resp.raise_for_status()
         raw_data = resp.json().get('data').get("sourceFOTA")
         # print(f"原始 API 响应数据: {raw_data}")
-        if(self.switch_en):
-            ret = {
-                "mcu":{
-                    "uuid":raw_data.get("sourceMcu",{}).get("uuid"),
-                    "packageName":raw_data.get("sourceMcu",{}).get("packageName"),
-                },
-                "switch":{
-                    "uuid":raw_data.get("sourceSwitch",{}).get("uuid"),
-                    "packageName":raw_data.get("sourceSwitch",{}).get("packageName"),
-                },
-                "switchb":{
-                    "uuid":raw_data.get("sourceSwitchB",{}).get("uuid"),
-                    "packageName":raw_data.get("sourceSwitchB",{}).get("packageName"),
-                },
-                "driver":{
-                    "fullName":raw_data.get("sourceDriver",{}).get("fullName"),
-                    "gwmShortName":raw_data.get("sourceDriver",{}).get("gwmShortName"),
-                    "socVersion":raw_data.get("sourceSoc").get("sourceDsvSoc",{}).get("packageName"),
-                }
+        ret = {
+            "mcu":{
+                "uuid":raw_data.get("sourceMcu",{}).get("uuid"),
+                "packageName":raw_data.get("sourceMcu",{}).get("packageName"),
+                "mcu_version":raw_data.get("sourceMcu",{}).get("oemVersion"),
+            },
+            "switch":{
+                "uuid":raw_data.get("sourceSwitch",{}).get("uuid"),
+                "packageName":raw_data.get("sourceSwitch",{}).get("packageName"),
+                "switch_version":raw_data.get("sourceSwitch",{}).get("oemVersion"),
+            },
+            "switchb":{
+                "uuid":raw_data.get("sourceSwitchB",{}).get("uuid"),
+                "packageName":raw_data.get("sourceSwitchB",{}).get("packageName"),
+                "switchb_version":raw_data.get("sourceSwitchB",{}).get("oemVersion"),
+            },
+            "driver":{
+                "fullName":raw_data.get("sourceDriver",{}).get("fullName"),
+                "gwmShortName":raw_data.get("sourceDriver",{}).get("gwmShortName"),
+                "socVersion":raw_data.get("sourceSoc").get("sourceDsvSoc",{}).get("packageName"),
+                "oemVersion":raw_data.get("sourceDriver",{}).get("oemVersion"),
             }
-        else:
-            ret = {
-                "mcu":{
-                    "uuid":raw_data.get("sourceMcu",{}).get("uuid"),
-                    "packageName":raw_data.get("sourceMcu",{}).get("packageName"),
-                },
-                "switch":{
-                    "uuid":raw_data.get("sourceSwitch",{}).get("uuid"),
-                    "packageName":raw_data.get("sourceSwitch",{}).get("packageName"),
-                },
-                "driver":{
-                    "fullName":raw_data.get("sourceDriver",{}).get("fullName"),
-                    "gwmShortName":raw_data.get("sourceDriver",{}).get("gwmShortName"),
-                    "socVersion":raw_data.get("sourceSoc").get("sourceDsvSoc",{}).get("packageName"),
-                }
+            }
+        if self.switch_en:
+            ret["switchb"] = {
+                "uuid": raw_data.get("sourceSwitchB", {}).get("uuid"),
+                "packageName": raw_data.get("sourceSwitchB", {}).get("packageName"),
+                "switchb_version": raw_data.get("sourceSwitchB", {}).get("oemVersion"),
             }
         print(f"injectpack info: {ret}")
         return ret
@@ -147,7 +140,7 @@ class DiffPackClient:
 
 def test():
     client = DiffPackClient(Architecture="THOR", workflow_id="86ebf5be-f311-4a2f-9df2-dbc0617cffc4")
-    client.get_injectpack_info()
+    client.get_guanzhuang_pack_info()
     client.get_injectpack_uuid()
 
 
