@@ -24,7 +24,7 @@ def set_network(net:str):
     
     execute(f"sudo ip link add link {net} name mgbe3_0.5 type vlan id 5 >/dev/null 2>&1 || true")
     execute(f"sudo ip link set mgbe3_0.5 type vlan egress 0:2 1:2 2:2 3:2 4:2 5:2 6:2 7:2")
-    execute(f"sudo ip address add 172.16.5.58/16 dev mgbe3_0.5 >/dev/null 2>&1 || true")
+    execute(f"sudo ip address add 172.16.5.58/24 dev mgbe3_0.5 >/dev/null 2>&1 || true")
     execute(f"sudo ip link set dev mgbe3_0.5 address 02:47:57:4d:00:58")
     execute(f"sudo ip link set dev mgbe3_0.5 up")
     print("network setting complete...")
@@ -118,18 +118,19 @@ def inject_default_key():
 
 if __name__ == "__main__":
     get_avail_space()
-    # if len(sys.argv) >1:
-    #     net = sys.argv[1]
-    #     print(net)
-    # else:
-    #     net = "enx207bd51a13cc"
-    #     print("using default network card...")
-    # with open("/proc/net/dev") as f:
-    #      if net not in f.read():
-    #           print(f"[ERROR]:network card {net} don`t exist!!!check the network configuration")
-    #           sys.exit(-1)
+    if len(sys.argv) >1:
+        net = sys.argv[1]
+        print(net)
+    else:
+        net = "enx207bd51a13cc"
+        print("using default network card...")
+    with open("/proc/net/dev") as f:
+         if net not in f.read():
+              print(f"[ERROR]:network card {net} don`t exist!!!check the network configuration")
+              sys.exit(-1)
 
-    # set_network(net)
+    set_network(net)
+    inject_default_key()
     # inject_other_key()
 
 

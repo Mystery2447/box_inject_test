@@ -80,7 +80,7 @@ class SshClient:
     def extract_soc_version(self):
         """提取 SOC 版本"""
         data_str = self.execu_cmd("cat /etc/version")[0]
-        return data_str
+        return data_str.strip()
 
     def extract_tail(self):
         """提取 tail ADS.METADATA"""
@@ -139,10 +139,10 @@ class SshClient:
         self.ssh_connect()
         
         # 提取各字段
-        soc_info["head-ADS.METADATA"] = self.extract_full_name()
-        soc_info["tail-ADS.METADATA"] = self.extract_tail()
-        soc_info["SOC_version"] = self.extract_soc_version()
-        soc_info["file_gwm_version"] = self.extract_gwm_version()
+        soc_info["driver_fullName"] = self.extract_full_name()
+        soc_info["driver_gwmShortName"] = self.extract_tail()
+        soc_info["soc_version"] = self.extract_soc_version()
+        soc_info["gwm_version"] = self.extract_gwm_version()
         soc_info["dem_status"] = self.dem_status()
         soc_info["dr_info"] = self.extract_dr_info()
         soc_info["dem_restart"] = self.dem_restart()

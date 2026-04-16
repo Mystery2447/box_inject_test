@@ -237,7 +237,7 @@ class DoipClient:
     "M82-FZ": "11000000" + "00" * 62,
     "M81H": "2A000000" + "00" * 62,
     "C01": "03000000" + "00" * 62,
-    "P01T": "24000003" + "00" * 62,
+    "P01T": "24 39 02 03 04 41 03 02 41 25 01 00 10 55 00 01 44 00 04 01 54 2B 11 00 00 00 01 00 40 00 05 02 20 48 40 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00".replace(" ",""),
     "P01Z": "24000001" + "00" * 62,
     "DE061": "1A000700" + "00" * 62,
     "DE062": "1A000800" + "00" * 62,
@@ -252,7 +252,7 @@ class DoipClient:
     "B26E": "29000000" + "00" * 62,
     "B07": "2C000000" + "00" * 62,
     "B07E": "2B000000" + "00" * 62,
-    
+    "EC24W":"32 39 03 00 01 63 03 02 41 05 01 00 10 55 19 01 44 00 00 19 54 2B 15 00 00 00 01 00 40 33 85 02 00 48 00 24 40 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00".replace(" ",""),
     # C061 - 第36字节(35)为20
     "C061": "1E 00 0C 01 00 00 00 00 00 00 00 00 00 00 00 00 00 01 40 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 20 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00".replace(" ",""), # 第36字节为20 (36字节 = 34个00 + 2字符 = 35字节位置)
     "C062": "21 00 0D 01 00 00 00 00 00 00 00 00 00 00 00 00 00 01 40 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00".replace(" ",""), # C062 - 第3字节(2)为0D，第36字节(35)为40
@@ -447,17 +447,18 @@ class DoipClient:
 if __name__=='__main__':
     if len(sys.argv)>1:
         cartype = sys.argv[1]
-        print(f"recv architect is {cartype}")
+        print(f"recv architect is {cartype.upper()}")
     else:
         raise ValueError("pls input the car type as the first para!!!")
+    ret = -1
     feishu_test = FeishuRobot("https://open.feishu.cn/open-apis/bot/v2/hook/86f13735-aa8e-4dc1-aa6a-258177111a1e")
     test = DoipClient()
     test.car_type = cartype
     test.client_setup()
     test.route_active()
-    if cartype in ('ORINX','ORINY'):
+    if cartype.upper() in ('ORINX','ORINY'):
         ret = test.ORIN_ota_a_zip()
-    elif cartype =='THOR':
+    elif cartype.upper() =='THOR':
         ret = test.THOR_ota_a_zip()
     if ret ==0:
         feishu_test.send_text("OTA success")

@@ -1,118 +1,8 @@
 import serial
+import re
 import time
 from typing import Optional, Union, Tuple
 
-# class Serial_device():
-#     #check if there are any thread occupied serial device!!!
-#     def __init__(self):
-#         self.ser = serial.Serial(
-#             port='/dev/ttyUSB0',
-#             baudrate=115200,
-#             bytesize=serial.EIGHTBITS,  # 8位数据位
-#             parity=serial.PARITY_NONE,   # 无校验位
-#             stopbits=serial.STOPBITS_ONE,  # 1位停止位
-#             timeout=1  # 超时时间（秒）
-#         )
-
-#         self.rx_thraed = None
-#         self.rx_buffer_size  = 2048
-#         self.rx_callback = None
-
-#     def close(self):
-#         print("serial device close")
-#         self.ser.close()
-
-#     def read_data(self):
-#         data = None
-#         if not self.ser or not self.ser.is_open:
-#             print("[WARNING] 串口未打开，无法读取数据")
-#             return ""  # 返回空字符串，而非-1
-#         time.sleep(0.5)
-#         if self.ser.in_waiting >= 30:
-#             data =self.ser.read(self.ser.in_waiting)
-#             print("recv data...")
-#             # print(f"Received {len(data)} bytes: {data}")
-
-#             return data.decode()
-#         return ""
-#         ...
-    
-#     def send_data(self,data=None):
-#         if not self.ser.is_open:
-#             self.ser.open()
-#         else:
-            
-#             print(f"已打开串口:/dev/ttyUSB0 (波特率: 115200)")
-#         if isinstance(data,str):
-#             data = data.encode()
-#         bytes_sent = self.ser.write(data)
-#         print(f"发送成功，共发送 {bytes_sent} 字节: {data.decode() if isinstance(data, bytes) else data}")
-#         self.ser.flush()
-#         time.sleep(0.3)
-
-#     def check_mcu_version(self):
-#         data = None
-#         version_start_mark = "Shell> version\r\r\n"
-#         self.send_data("version\r\n")
-#         data = self.read_data()
-#         if data is not None:
-#             start_index = data.find(version_start_mark)
-#             if start_index == -1:
-#                 print("[ERROR1]could not find the version label!!!")
-#                 return -1
-#             else:
-#                 content_start = start_index + len(version_start_mark)
-#                 content_end = data.find(" ",content_start)
-
-#             if content_end == -1 :
-#                 extracted_content = data[content_start:].strip()
-#                 print("[ERROR2]could not find the version label!!!")   
-#                 return -1
-#             else:
-#                 extracted_content = data[content_start:content_end].strip()
-
-#                 print("version read success...")
-#                 print(f"read versio is {extracted_content[4:]}")
-#         self.close()
-
-#         return extracted_content
-#         ...
-
-#     def check_switch_version(self):
-#         data = None
-#         version_start_mark = "[SWITCH]"
-#         self.send_data("switch\r\n")
-#         data = self.read_data()
-#         if data is not None:
-#             content_start_raw = data.find(version_start_mark)
-#             if content_start_raw == -1:
-#                 print("[ERROR1]could not find switch version \r\n")
-                
-#             else:
-#                 content_start_raw = content_start_raw + len(version_start_mark)
-#                 end_content = data.find("\r\n",content_start_raw)
-#             if end_content == -1:
-#                 print("[ERROR2]could not find the version label!!!")   
-#                 return -1
-#             else:
-#                 switch_1 = data[content_start_raw:end_content]
-#                 print("version read success...")
-#                 print(f"switch_1 version is {switch_1}")
-#                 sec_data = data.find("[SWITCH]",content_start_raw)
-#                 if sec_data ==-1:
-#                     return switch_1
-#                 else:
-#                     start_index = sec_data+len("[SWITCH]")
-#                     end_content = data.find("\r\n",start_index)
-#                 if end_content ==-1:
-#                     print("[ERROR2]could not find the version label!!!")   
-#                     return -1
-#                 else:
-#                     switch_2 = data[start_index:end_content]
-#                     print("version read success...")
-#                     print(f"switch_2 version is {switch_2}")
-#                     return(switch_1,switch_2)
-#         self.close()
 
 class Serial_device():
     def __init__(self, port='/dev/ttyUSB0', baudrate=115200, timeout=2):
@@ -193,6 +83,7 @@ class Serial_device():
         try:
             if isinstance(data, str):
                 data = data.encode()
+            self.ser.reset_input_buffer() 
             bytes_sent = self.ser.write(data)
             self.ser.flush()  # 确保数据发送完成
             print(f"发送成功: {bytes_sent} 字节")
@@ -200,7 +91,105 @@ class Serial_device():
         except Exception as e:
             print(f"发送失败: {e}")
             return False
-
+    def get_version(self, cmd: str = "version\r\n", max_retries: int = 3, retry_delay: float = 1.0) -> Optional[Union[str, tuple]]:
+        """
+        获取版本号，支持重试机制，自动识别命令类型
+        
+        :param cmd: 查询命令 ("version\r\n" 或 "switch\r\n")
+        :param max_retries: 最大重试次数
+        :param retry_delay: 重试间隔（秒）
+        :return: 
+            - version命令: 返回版本号字符串
+            - switch命令: 返回元组 (version_a, version_b) 或单个版本号
+            - 失败返回None
+        """
+        # 根据命令类型定义不同的正则表达式模式
+        if "switch" in cmd.lower():
+            patterns = [
+                # 匹配 ADC4.0_S-5192A_260129_3A629 格式
+                r'ADC[\d\.]+_S-5192[AB]_[\d]+_[A-F0-9]+',
+                # 匹配 ADC4.0_S-5192A_260129_3A629 或 ADC3.0_S_260304_7165EB 格式
+                r'ADC[\d\.]+_S-?[A-Z0-9]*_?[\d]+_[A-F0-9]+',
+                # 最通用的匹配：ADC开头，包含_S，后面跟版本信息
+                r'ADC[\d\.]+_S[_-][A-Z0-9_-]+',
+            ]
+        else:
+            patterns = [
+                r'ADC[\d\.]+_MCU_R[\d\.]+_\d+_[A-F0-9]+',
+                r'ADC[\d\.]+_MCU_[\d\.]+_\d+_[A-F0-9]+',
+                r'ADC[\d\.]+_MCU_R?[\d\._]+[A-F0-9]*',
+            ]
+        
+        for attempt in range(max_retries):
+            if attempt > 0:
+                print(f"\n[重试 {attempt}/{max_retries-1}] 重新获取版本号...")
+                time.sleep(retry_delay)
+                
+                # 清空缓冲区
+                if self.is_open() and self.ser.in_waiting > 0:
+                    self.ser.read(self.ser.in_waiting)
+                    print("[INFO] 已清空缓冲区")
+            
+            # 发送命令
+            if not self.send_data(cmd):
+                print(f"[ERROR] 发送命令失败 (尝试 {attempt + 1})")
+                continue
+            
+            # 等待设备响应
+            time.sleep(0.5)
+            
+            # 读取响应数据
+            response = self.read_data(min_bytes=10, max_wait=2.0)
+            
+            if not response:
+                print(f"[WARNING] 未收到设备响应 (尝试 {attempt + 1})")
+                continue
+            
+            # 提取所有匹配的版本号
+            matched_versions = []
+            for pattern in patterns:
+                matches = re.findall(pattern, response)
+                if matches:
+                    matched_versions.extend(matches)
+            
+            # 去重并保持顺序
+            unique_versions = []
+            for v in matched_versions:
+                if v not in unique_versions:
+                    unique_versions.append(v)
+            
+            if unique_versions:
+                print(f"[INFO] 提取到版本号: {unique_versions}")
+                
+                # 如果是 switch 命令，返回元组
+                if "switch" in cmd.lower():
+                    if len(unique_versions) >= 2:
+                        # 尝试识别 5192A 和 5192B
+                        version_a = next((v for v in unique_versions if '5192A' in v), None)
+                        version_b = next((v for v in unique_versions if '5192B' in v), None)
+                        
+                        # 如果没有5192A/B标识，按顺序返回前两个
+                        if not version_a and len(unique_versions) >= 2:
+                            return (unique_versions[0], unique_versions[1])
+                        
+                        if version_a and version_b:
+                            return (version_a, version_b)
+                    
+                    # 只有一个版本时返回元组（第二个为None）
+                    return (unique_versions[0], None) if len(unique_versions) == 1 else None
+                else:
+                    # version 命令返回字符串
+                    return unique_versions[0]
+            
+            # 如果响应中包含系统日志，提示并重试
+            if any(keyword in response for keyword in ["buffer overflow", "abnormal", "cpu_load"]):
+                print(f"[WARNING] 收到系统日志而非版本信息: {response[:80]}...")
+            else:
+                print(f"[WARNING] 未从响应中提取到版本号 (尝试 {attempt + 1})")
+                print(f"[DEBUG] 原始响应: {response[:100]}")
+        
+        print(f"[ERROR] 经过 {max_retries} 次尝试后仍未获取到版本号")
+        return None
     def check_mcu_version(self, retries: int = 3) -> Optional[str]:
         """检查MCU版本，增加重试机制"""
         version_start_mark = "Shell> version\r\n"
@@ -237,7 +226,6 @@ class Serial_device():
 
         print(f"重试{retries}次后仍失败")
         return None
-
     def check_switch_version(self, retries: int = 3) -> Union[None, str, Tuple[str, str]]:
         """检查交换机版本，增加重试机制"""
         version_mark = "[SWITCH]"
@@ -289,4 +277,7 @@ class Serial_device():
 
 if __name__ == '__main__':
     test = Serial_device()
-    test.send_data("poweron\r\n")
+    mcu_data = test.get_version(cmd='version\r\n',max_retries=5,retry_delay=1)
+    switch_data = test.get_version(cmd='switch\r\n',max_retries=5,retry_delay=1)
+    print(f"获取到的MCU版本信息: {mcu_data}")
+    print(f"获取到的版本信息: {switch_data}")
