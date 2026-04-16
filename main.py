@@ -334,41 +334,6 @@ if __name__ =='__main__':
 
     }
     report.update_test_result(test_result)
-#     feishu_test.send_text(
-#     content=f"--------------------- can inject test ---------------------\r\n\
-# \r\n\
-# --------------------- 1. serial read - MCU ---------------------\r\n\
-# {mcu_version}  \r\n\
-# \r\n\
-# --------------------- 2. serial read - switch ---------------------\r\n\
-# {switch_version} \r\n\
-# \r\n\
-# --------------------- 3. head ADS-METADATA ---------------------\r\n\
-# {test_info['head-ADS.METADATA']}\r\n\
-# \r\n\
-# --------------------- 4. tail ADS-METADATA ---------------------\r\n\
-# {test_info['tail-ADS.METADATA']}\r\n\
-# \r\n\
-# --------------------- 5. SOC version ---------------------\r\n\
-# {test_info['SOC_version']} \r\n\
-# \r\n\
-# --------------------- 6. file_gwm_version ---------------------\r\n\
-# GWM 版本：{test_info['file_gwm_version']}\r\n\
-# --------------------- 7. DEM status ---------------------\r\n\
-# {test_info['dem_status']}  \r\n\
-# \r\n\
-# --------------------- 8. read dr_info ---------------------\r\n\
-# {test_info['dr_info']}\r\n\
-# \r\n\
-# --------------------- 9.DOIP read version ---------------------\r\n\
-#  gwm_version:{doip_guangzhuang_version['gwm_version']}\r\n\
-#  gwm_software_infomation:{doip_guangzhuang_version['gwm_software_infomation']}\r\n\
-#  gwm_Calibration_version:{doip_guangzhuang_version['gwm_Calibration_version']}\r\n\
-# # --------------------- 10. DEM restart status ---------------------\r\n\
-# {test_info['dem_restart']} \r\n\
-# \r\n\
-# start to ota test..."
-# )
     for i in range(60,0,-1):
         print(f"dem init cnt:{i}s  ",end='\r')
         time.sleep(1)
@@ -388,14 +353,6 @@ if __name__ =='__main__':
         test_result["ota_dem_status"] =ret["dem_status"]
         test_result["ota_dr_info"] =ret["dr_info"]
         test_result["ota_gwm_version"] = ret["file_gwm_version"]
-#         feishu_test.send_text(f"--------------------- 1. file_gwm_version ---------------------\r\n\
-# GWM 版本：{ret['file_gwm_version']}\r\n\
-# --------------------- 2. DEM status ---------------------\r\n\
-# {ret['dem_status']}  \r\n\
-# \r\n\
-# --------------------- 3. read dr_info ---------------------\r\n\
-# {ret['dr_info']}\r\n\
-# \r\n:")
     elif ret == 'not start OTA.wrong archi!!!':
         feishu_test.send_text(ret)
     else:
