@@ -132,7 +132,7 @@ def main():
         sys.exit(1)
 
     # 标准化车型名称
-    car_key = car.lower() if car.lower() == 'oriny' else car.capitalize()
+    car_key = car.lower() 
 
     # 从配置获取 MCU 工具目录
     config = CAR_CONFIG[car_key]

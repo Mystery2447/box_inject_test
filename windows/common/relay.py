@@ -7,8 +7,8 @@ ch2_off = b'\xA0\x02\x00\xA2'
 ch2_on = b'\xA0\x02\x01\xA3'
 ch3_off =b'\xA0\x03\x00\xA3'
 ch3_on = b'\xA0\x03\x01\xA4'
-ch4_off = b'\xA0\x04\x00\xA4'
-ch4_on = b'\xA0\x04\x01\xA5'
+ch4_on = b'\xA0\x04\x00\xA4'
+ch4_off = b'\xA0\x04\x01\xA5'
 
 
 def find_relay_com():
@@ -38,7 +38,7 @@ class Relay:
     CH1---switch-A  剪断VCC,把GND串继电器
     CH2---switch-B  剪断VCC,把GND串继电器
     CH3---miniwiggler  把GND串继电器
-    CH4---KL30 power supply  把KL30串继电器
+    CH4---KL30 power supply  把KL30串继电器,接NC端
     """
     def __init__(self, port: str):
         self.serial = serial.Serial(port, 9600,
@@ -92,4 +92,21 @@ def test():
     r.close()
 
 if(__name__ == "__main__"):
-    print(find_relay_com())
+    dev_port = find_relay_com()
+    if dev_port:
+        print(f"找到继电器设备: {dev_port}")
+        r = Relay(dev_port)
+        print("测试继电器状态:")
+        print(r.check_state())
+        print("测试打开 CH1 和 CH2...")
+        # r.ch3_off()
+        r.ch_all_off()
+        time.sleep(5)
+        r.ch4_on()
+        r.close()
+        # print("测试关闭所有通道...")
+        # r.ch_all_off()
+        # print(r.check_state())
+        # r.close()
+    else:
+        print("未找到继电器设备，测试终止。")
