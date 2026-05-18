@@ -95,10 +95,28 @@ def serial_check():
     mcu_serial = None
     try:
         mcu_serial = Serial_device()  # ttyUSB0
-        mcu_serial.send_data("aurixreset\r\n") 
+        mcu_serial.send_and_verify("aurixreset\r\n",max_retries=3, retry_delay=2)
         time.sleep(10)  # 等待MCU重启完成
-        mcu_serial.send_data("poweron\r\n")  # just in case
-        time.sleep(10)
+
+        # 发送 poweron，回读确认 + 重试（MCU 正常响应时输出会包含 "poweron"）
+        MAX_POWERON_RETRY = 3
+        poweron_ok = False
+        for attempt in range(1, MAX_POWERON_RETRY + 1):
+            mcu_serial.send_data("poweron\r\n")
+            time.sleep(3)
+            resp = mcu_serial.read_data(min_bytes=1, max_wait=2.0) or ""
+            if "poweron" in resp.lower():
+                print(f"[INFO] poweron confirmed (attempt {attempt}/{MAX_POWERON_RETRY}): "
+                      f"{resp[:80].strip()}")
+                poweron_ok = True
+                break
+            print(f"[WARN] poweron not confirmed (attempt {attempt}/{MAX_POWERON_RETRY}), "
+                  f"resp: {resp[:80].strip() if resp else '(no response)'}")
+        if not poweron_ok:
+            print("[WARN] poweron could not be confirmed after "
+                  f"{MAX_POWERON_RETRY} attempts, proceeding anyway")
+
+        time.sleep(5)  # 等待 MCU 完全就绪
         
         # 获取 MCU 版本
         mcu_version = mcu_serial.get_version(cmd='version\r\n', max_retries=5, retry_delay=1)
@@ -204,7 +222,7 @@ def inject_key_check(car_type = 'C01',Architecture = 'ORINX'):
     
 def doip_check(car_type = 'C01'):
     doip_test = DoipClient()
-    doip_test.set_network("enx207bd51a13cc")
+    # doip_test.set_network("enx207bd51a13cc")
     doip_test.car_type = car_type
     doip_test.client_setup()
     doip_test.route_active()
@@ -261,7 +279,6 @@ if __name__ =='__main__':
         flow_id = None
         raise Exception("pls input correct para!!!")
     feishu_test = FeishuRobot("https://open.feishu.cn/open-apis/bot/v2/hook/86f13735-aa8e-4dc1-aa6a-258177111a1e")
-    report =FeishuReporter(car_type)
     clean = Prework()
     clean.network_prepare()
     if(clean.space_check()!=0):
@@ -288,10 +305,12 @@ if __name__ =='__main__':
         print("=" * 60)
         print("[DONE] SOC 刷写完成")
         print("=" * 60)
-
+    report =FeishuReporter(car_type)    ##token有效期只有2小时，放在这里初始化，确保整个流程的消息都能发出去
     mcu_version,switch_version = serial_check()
+    time.sleep(5)
+    print("等待 5s,MCU pwoeron 后稳定...")
     try:
-        result = inject_key_check(car_type='C01', Architecture='other')
+        result = inject_key_check(car_type='C01', Architecture=car_TEST)
         
         if result is None:
             print("架构为 ORINX，无需执行注入操作")
@@ -344,7 +363,7 @@ if __name__ =='__main__':
         sys.exit(-1)
     diff_client.download_diffpack(diff_url)
     diff_client.scp_diffpack()
-
+    time.sleep(20)
     ret = doip_OTA(car_TEST)
     if ret == 'success OTA':
         feishu_test.send_text(ret)

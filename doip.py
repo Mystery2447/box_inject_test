@@ -73,8 +73,59 @@ class DoipClient:
         if self.sock_client:
             self.sock_client.close()
             print("DOIP connection close...")
-
+    def recv_exact(self, size):
+        data = b''
+        while len(data) < size:
+            chunk = self.sock_client.recv(size - len(data))
+            if not chunk:
+                raise ConnectionError("socket closed")
+            data += chunk
+        return data    
     def recv_doip_message(self):
+        recv_data = self.sock_client.recv(256)
+        # read doip header
+        header = self.recv_exact(8)
+
+        payload_len = int.from_bytes(header[4:8], byteorder='big')
+
+        # read payload
+        payload = self.recv_exact(payload_len)
+
+        frame = header + payload
+
+        print(frame.hex())
+
+        uds_data = payload[4:]
+
+        print("[recv UDS frame]:{}".format(
+            ' '.join(['0x{:02x}'.format(i) for i in uds_data])
+        ))
+
+        while uds_data[0] == 0x7f and uds_data[2] == 0x78:
+
+            print("pending...")
+
+            header = self.recv_exact(8)
+
+            payload_len = int.from_bytes(header[4:8], byteorder='big')
+
+            payload = self.recv_exact(payload_len)
+
+            frame = header + payload
+
+            uds_data = payload[4:]
+
+            print("[recv UDS frame]:{}".format(
+                ' '.join(['0x{:02x}'.format(i) for i in uds_data])
+            ))
+
+        return {
+            'sid': int(uds_data[0]),
+            'data': [i for i in uds_data[1:]],
+            'len': len(uds_data),
+            'NRC': 0
+        }
+    def recv_doip_message_bak(self):
         """接收 DOIP 响应消息"""
         recv_data = self.sock_client.recv(256)
         recv_data = bytes.hex(recv_data)
@@ -456,6 +507,8 @@ if __name__=='__main__':
     test.car_type = cartype
     test.client_setup()
     test.route_active()
+    # test.write_F1B1_car_config_VIN()
+    test.check_guanzhuang_version()
     if cartype.upper() in ('ORINX','ORINY'):
         ret = test.ORIN_ota_a_zip()
     elif cartype.upper() =='THOR':

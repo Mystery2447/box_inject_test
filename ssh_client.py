@@ -11,7 +11,7 @@ class SshClient:
             print("debug here1")
         elif Architecture == 'ORINX':
             self.Architecture = Architecture
-            self.ssh_password = "W8k3L2@m;"
+            self.ssh_password = "Yu7kW#h9!"
             print("debug here3")
         elif Architecture == "ORINY":
             self.Architecture = Architecture
@@ -100,7 +100,13 @@ class SshClient:
 
     def extract_gwm_version(self):
         """提取 GWM 版本文件内容"""
-        data_str = self.execu_cmd("cat /opt/deeproute/driver/config/diagnostic/gwm*")[0]
+        print(f"当前 cartype: '{self.Architecture}'")
+        print(f"cartype 类型: {type(self.Architecture)}")
+        if self.Architecture == 'ORINX':
+            data_str = self.execu_cmd("cat /opt/deeproute/driver/config/diagnostic/gwm_version")[0]
+            return {"gwm_version": data_str.strip()}
+        else:
+            data_str = self.execu_cmd("cat /opt/deeproute/driver/config/diagnostic/gwm*")[0]
         gwm_version = json.loads(data_str)
         car_type_lower = self.cartype.lower()
         for k,v in gwm_version.items():

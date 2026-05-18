@@ -156,8 +156,11 @@ class FeishuReporter:
                 data=json.dumps({"app_id": self.App_ID, "app_secret": self.App_Secret})
             )
             if resp.status_code == 200:
-                token = resp.json().get("tenant_access_token")
+                data = resp.json()
+                token = data.get("tenant_access_token")
+                expire = data.get("expire", 7200)
                 if token:
+                    self._token_expire_at = time.time() + expire - 60  # 提前 60s 刷新
                     print("飞书租户令牌获取成功")
                     return token
             print(f"飞书令牌获取失败：{resp.text}")
@@ -167,6 +170,8 @@ class FeishuReporter:
             return ""
 
     def _auth_headers(self):
+        if time.time() >= getattr(self, "_token_expire_at", 0):
+            self.tenant_access_token = self.get_tenant_access_token()
         return {
             "Authorization": f"Bearer {self.tenant_access_token}",
             "Content-Type": "application/json",
@@ -370,7 +375,7 @@ class FeishuReporter:
         color_map = {"Pass": _C_PASS, "Fail": _C_FAIL}
         style_data = []
         for idx, result in enumerate(results):
-            row   = idx + _DATA_START - 1   # 数据从 _DATA_START 行开始
+            row   = idx + _DATA_START   # 数据从 _DATA_START 行开始，enumerate 从 0 开始
             color = color_map.get(result, _C_NA)
             style_data.append({
                 "ranges": [f"{self.sheet_id}!E{row}:E{row}"],

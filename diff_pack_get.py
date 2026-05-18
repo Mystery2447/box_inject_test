@@ -18,7 +18,7 @@ class DiffPackClient:
         if self.architecture is None:
             self.ssh_password = "#7F7d8or"
         elif self.architecture == 'ORINX':
-            self.ssh_password = "W8k3L2@m;"
+            self.ssh_password = "Yu7kW#h9!"
         elif self.architecture == "ORINY":
             self.ssh_password = "#7F7d8or"
         elif self.architecture == "THOR":
@@ -60,10 +60,10 @@ class DiffPackClient:
         resp.raise_for_status()
         workflow_data = resp.json().get('data', {})
         diff_status = workflow_data.get('diffMsg')
-        if(diff_status is not None):
-            diffpack_id = workflow_data.get('diffId')
+        diffpack_id = workflow_data.get('diffId')
+        if diff_status is not None and diffpack_id:
             print(f"diffpack_id: {diffpack_id}")
-            return  f"{diffpack_id}"
+            return f"{diffpack_id}"
         print(f"diff状态: {diff_status}")
         return None
     def download_diffpack(self, url):
@@ -180,19 +180,22 @@ class DiffPackClient:
                 raise RuntimeError(f"Failed to open serial port {serial_port}")
 
             print("[FLASH] Sending poweron...")
-            ser.send_data("poweron\r\n")
+            if not ser.send_and_verify("poweron\r\n"):
+                raise RuntimeError("poweron command failed - no echo confirmation")
 
             print("[FLASH] Waiting 10s...")
             time.sleep(10)
 
             print("[FLASH] Sending tegrarecovery x1 on...")
-            ser.send_data("tegrarecovery x1 on\r\n")
+            if not ser.send_and_verify("tegrarecovery x1 on\r\n"):
+                raise RuntimeError("tegrarecovery command failed - no echo confirmation")
 
             print("[FLASH] Waiting 5s...")
             time.sleep(5)
 
             print("[FLASH] Sending tegrareset x1...")
-            ser.send_data("tegrareset x1\r\n")
+            if not ser.send_and_verify("tegrareset x1\r\n"):
+                raise RuntimeError("tegrareset command failed - no echo confirmation")
         finally:
             ser.close()
 

@@ -91,6 +91,41 @@ class Serial_device():
         except Exception as e:
             print(f"发送失败: {e}")
             return False
+    def send_and_verify(self, data: str, expect: str = None, max_retries: int = 3,
+                        read_wait: float = 2.0, retry_delay: float = 1.0) -> bool:
+        """
+        发送命令并通过回显确认：设备会回显收到的命令，取命令第一个词在回显中比对。
+        :param data: 发送的命令字符串
+        :param expect: 回显中期望出现的关键字（默认取命令第一个词）
+        :param max_retries: 最大重试次数
+        :param read_wait: 每次等待回读的最长时间（秒）
+        :param retry_delay: 重试间隔（秒）
+        :return: 确认成功返回 True，超出重试次数返回 False
+        """
+        if expect is None:
+            expect = data.strip().split()[0]
+
+        for attempt in range(1, max_retries + 1):
+            if not self.send_data(data):
+                print(f"[WARN] send_and_verify: 发送失败 (attempt {attempt}/{max_retries})")
+                time.sleep(retry_delay)
+                continue
+
+            time.sleep(0.3)
+            resp = self.read_data(min_bytes=1, max_wait=read_wait) or ""
+
+            if expect.lower() in resp.lower():
+                print(f"[INFO] send_and_verify: '{expect}' 回显确认成功 (attempt {attempt}/{max_retries})")
+                return True
+
+            print(f"[WARN] send_and_verify: '{expect}' 未在回显中找到 "
+                  f"(attempt {attempt}/{max_retries}), resp: {resp[:80].strip() or '(empty)'}")
+            if attempt < max_retries:
+                time.sleep(retry_delay)
+
+        print(f"[ERROR] send_and_verify: '{expect}' 经 {max_retries} 次尝试仍未确认")
+        return False
+
     def get_version(self, cmd: str = "version\r\n", max_retries: int = 3, retry_delay: float = 1.0) -> Optional[Union[str, tuple]]:
         """
         获取版本号，支持重试机制，自动识别命令类型
@@ -106,18 +141,21 @@ class Serial_device():
         # 根据命令类型定义不同的正则表达式模式
         if "switch" in cmd.lower():
             patterns = [
-                # 匹配 ADC4.0_S-5192A_260129_3A629 格式
-                r'ADC[\d\.]+_S-5192[AB]_[\d]+_[A-F0-9]+',
-                # 匹配 ADC4.0_S-5192A_260129_3A629 或 ADC3.0_S_260304_7165EB 格式
-                r'ADC[\d\.]+_S-?[A-Z0-9]*_?[\d]+_[A-F0-9]+',
-                # 最通用的匹配：ADC开头，包含_S，后面跟版本信息
-                r'ADC[\d\.]+_S[_-][A-Z0-9_-]+',
+                # 匹配 C01_S-6113_250819_D3F709 或 ADC4.0_S-5192A_260129_3A629 格式
+                r'(?:ADC[\d\.]+|C\d+)_S-\d+[A-Za-z]?_[\d]+_[A-F0-9]+',
+                # 匹配 ADC4.0_S_260304_7165EB 或 C01_S_xxxxxx_xxxxxx 格式
+                r'(?:ADC[\d\.]+|C\d+)_S-?[A-Z0-9]*_?[\d]+_[A-F0-9]+',
+                # 最通用的匹配：ADC/C01开头，包含_S，后面跟版本信息
+                r'(?:ADC[\d\.]+|C\d+)_S[_-][A-Z0-9_-]+',
             ]
         else:
             patterns = [
-                r'ADC[\d\.]+_MCU_R[\d\.]+_\d+_[A-F0-9]+',
-                r'ADC[\d\.]+_MCU_[\d\.]+_\d+_[A-F0-9]+',
-                r'ADC[\d\.]+_MCU_R?[\d\._]+[A-F0-9]*',
+                # 匹配 C01_MCU_R6.03.31_260331_780FB7 或 ADC4.0_MCU_R6.03.31_260331_780FB7 格式
+                r'(?:ADC[\d\.]+|C\d+)_MCU_R[\d\.]+_\d+_[A-F0-9]+',
+                # 匹配 ADC4.0_MCU_6.03.31_260331_780FB7 或 C01_MCU_6.03.31_260331_780FB7 格式
+                r'(?:ADC[\d\.]+|C\d+)_MCU_[\d\.]+_\d+_[A-F0-9]+',
+                # 最通用的匹配
+                r'(?:ADC[\d\.]+|C\d+)_MCU_R?[\d\._]+[A-F0-9]*',
             ]
         
         for attempt in range(max_retries):
