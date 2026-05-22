@@ -20,5 +20,3 @@ pip-delete-this-directory.txt
 # Project specific
 terminals/
 *.log
-
-flash_dir/
