@@ -4,14 +4,14 @@ import os
 import re
 import time
 import json
+import argparse
 import inject_key
 from ssh_client import SshClient
 from doip import DoipClient
 from my_serial import Serial_device
 from feishu import FeishuRobot,FeishuReporter
 from diff_pack_get import DiffPackClient
-
-soc_flash_en = False
+from peizhizi import peizhizi_map, get_supported_car_types
 
 class Prework():
     def __init__(self,net:str='enx207bd51a13cc'):
@@ -143,12 +143,12 @@ def serial_check():
     except FileNotFoundError as e:
         error_msg = f"could not find ttyUSB0: {e}"
         print(f"[ERROR] {error_msg}")
-        return None, (None, None)
-        
+        sys.exit(-1)
+
     except Exception as e:
         error_msg = f"Unexpected error: {e}"
         print(f"[ERROR] {error_msg}")
-        return None, (None, None)
+        sys.exit(-1)
         
     finally:
         if mcu_serial and hasattr(mcu_serial, 'close'):
@@ -268,16 +268,42 @@ def AFTER_OTA_CHECK(car_type='ORINX',car_t='C01'):
 
 
 if __name__ =='__main__':
-    print("first para is architect ,second is car_type")
-    if len(sys.argv)>3:
-        car_TEST = sys.argv[1].upper()  #orin平台
-        car_type = sys.argv[2]  #具体车型
-        flow_id  = sys.argv[3] #灌装包工作流id
-    else:
-        car_TEST = 'ORINX'
-        car_type = 'C01'
-        flow_id = None
+    parser = argparse.ArgumentParser(
+        description='灌装测试自动化',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+使用示例:
+  python main.py ORINX C01 <workflow_id>               # 基本用法
+  python main.py ORINX C01 <workflow_id> --soc-flash   # 启用 SOC 刷写
+  python main.py -h                                     # 查看帮助信息
+
+支持的车型:
+  """ + ", ".join(get_supported_car_types())
+    )
+    parser.add_argument('architect', nargs='?', default='ORINX',
+                        help='架构类型, 可选: ORINX / ORINY / THOR (默认: ORINX)')
+    parser.add_argument('car_type', nargs='?', default='C01',
+                        help='车型, 例如: C01 / P01T / EC24W (默认: C01)')
+    parser.add_argument('flow_id', nargs='?', default=None,
+                        help='灌装包工作流 ID (必填)')
+    parser.add_argument('--soc-flash', action='store_true', default=False,
+                        help='启用 SOC 刷写流程 (默认: 禁用)')
+    args = parser.parse_args()
+
+    car_TEST = args.architect.upper()
+    car_type = args.car_type
+    flow_id  = args.flow_id
+    soc_flash_en = args.soc_flash
+
+    if flow_id is None:
+        parser.print_help()
         raise Exception("pls input correct para!!!")
+
+    if car_type.upper() not in peizhizi_map:
+        print(f"[ERROR] 未知车型: {car_type}")
+        print("当前支持的车型: " + ", ".join(get_supported_car_types()))
+        sys.exit(-1)
+
     feishu_test = FeishuRobot("https://open.feishu.cn/open-apis/bot/v2/hook/86f13735-aa8e-4dc1-aa6a-258177111a1e")
     clean = Prework()
     clean.network_prepare()
@@ -307,8 +333,8 @@ if __name__ =='__main__':
         print("=" * 60)
     report =FeishuReporter(car_type)    ##token有效期只有2小时，放在这里初始化，确保整个流程的消息都能发出去
     mcu_version,switch_version = serial_check()
-    time.sleep(5)
-    print("等待 5s,MCU pwoeron 后稳定...")
+    print("等待 30s,MCU pwoeron 后稳定...")
+    time.sleep(30)
     try:
         result = inject_key_check(car_type='C01', Architecture=car_TEST)
         
