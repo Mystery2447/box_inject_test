@@ -94,6 +94,7 @@ if __name__ == "__main__":
     
     print("正在执行 MCU 刷写流程...")
     r.ch1_off()
+    r.ch2_on()
     r.ch3_on()
     ret = flash_mcu(archecture, pack_info.get('sourceMcu').get('uuid'))
     if ret:
@@ -135,7 +136,7 @@ if __name__ == "__main__":
             r.close()
             sys.exit(1)
     r.close()
-    ssh_client.execute_python_script("/home/chenzefeng/Documents/test/can_inject_test/main.py", f"{archecture} {cartype} {workflowId}") 
+    ssh_client.execute_python_script("/home/chenzefeng/Documents/test/can_inject_test/main.py", f"{archecture} {cartype} {workflowId}  --soc-flash") 
     ssh_client.close()
 
         
