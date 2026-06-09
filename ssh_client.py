@@ -109,9 +109,12 @@ class SshClient:
             data_str = self.execu_cmd("cat /opt/deeproute/driver/config/diagnostic/gwm*")[0]
         gwm_version = json.loads(data_str)
         car_type_lower = self.cartype.lower()
-        for k,v in gwm_version.items():
+        matched = {}
+        for k, v in gwm_version.items():
             if k.lower() in car_type_lower or car_type_lower in k.lower():
-                return {k:v}
+                matched[k] = v
+        if matched:
+            return matched
         return gwm_version
 
     def dem_status(self):
@@ -156,6 +159,15 @@ class SshClient:
         self.ssh_close()
         return soc_info
     
+    def m82hc_write_f187(self):
+        """M82HC 车型识别: 写入 F187.bin 并重启 dem"""
+        self.ssh_connect(ip="172.16.2.14")
+        self.execu_cmd('echo -n "3602100XMA02A" > /data_algo/dsv/did/F187.bin')
+        print("M82HC: F187.bin 写入完成")
+        self.dem_restart()
+        self.ssh_close()
+        print("M82HC: dem 重启完成，车型识别已生效")
+
     def after_test(self):
         soc_info = {}
         self.ssh_connect()

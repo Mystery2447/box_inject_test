@@ -14,8 +14,9 @@ from diff_pack_get import DiffPackClient
 from peizhizi import peizhizi_map, get_supported_car_types
 
 class Prework():
-    def __init__(self,net:str='enx207bd51a13cc'):
+    def __init__(self,net:str='enx207bd51a13cc', architecture:str='ORINX'):
         self.net = net
+        self.architecture = architecture
         pass
     def execute(self,command:str):
         try:
@@ -46,7 +47,10 @@ class Prework():
     def doip_net_setup(self):
         self.execute(f"sudo ip link add link {self.net} name mgbe3_0.2 type vlan id 2 >/dev/null 2>&1 || true")
         self.execute(f"sudo ip link set mgbe3_0.2 type vlan egress 0:2 1:2 2:2 3:2 4:2 5:2 6:2 7:2")
-        self.execute(f"sudo ip address add 172.16.2.58/24 dev mgbe3_0.2 >/dev/null 2>&1 || true")
+        if self.architecture == 'ORINX':
+            self.execute(f"sudo ip address add 172.16.2.58/24 dev mgbe3_0.2 >/dev/null 2>&1 || true")
+        else:
+            self.execute(f"sudo ip address add 172.16.2.66/24 dev mgbe3_0.2 >/dev/null 2>&1 || true")
         # self.execute(f"sudo ip link set dev mgbe3_0.2 address 02:47:57:4d:00:58")
         self.execute(f"sudo ip link set dev mgbe3_0.2 up")
         print("network setting complete...")
@@ -220,7 +224,7 @@ def inject_key_check(car_type = 'C01',Architecture = 'ORINX'):
 
         return 1
     
-def doip_check(car_type = 'C01'):
+def doip_check(car_type = 'C01', Architecture='ORINX'):
     doip_test = DoipClient()
     # doip_test.set_network("enx207bd51a13cc")
     doip_test.car_type = car_type
@@ -232,6 +236,14 @@ def doip_check(car_type = 'C01'):
     for i in range(100,0,-1):
         print(f"ADCU start cnt:{i}s  ",end='\r')
         time.sleep(1)
+    # M82HC 需要先写入 F187.bin 并重启 dem 才能识别车型
+    if car_type.upper() == 'M82HC':
+        print("=" * 60)
+        print("[M82HC] 写入 F187.bin 并重启 dem 以识别车型...")
+        print("=" * 60)
+        m82hc_ssh = SshClient(Architecture=Architecture, password='', car_type=car_type)
+        m82hc_ssh.m82hc_write_f187()
+        time.sleep(20)  # 等待 dem 重启完成
     doip_test.client_setup()
     doip_test.route_active()
     doip_version = doip_test.check_guanzhuang_version()
@@ -305,7 +317,7 @@ if __name__ =='__main__':
         sys.exit(-1)
 
     feishu_test = FeishuRobot("https://open.feishu.cn/open-apis/bot/v2/hook/86f13735-aa8e-4dc1-aa6a-258177111a1e")
-    clean = Prework()
+    clean = Prework(architecture=car_TEST)
     clean.network_prepare()
     if(clean.space_check()!=0):
         clean.clean_space()
@@ -351,7 +363,7 @@ if __name__ =='__main__':
         sys.exit(-1)
     # inject_key_check(car_type=car_type,Architecture=car_TEST)
 
-    doip_guangzhuang_version = doip_check(car_type) ##配置字刷写完有几率无法connect
+    doip_guangzhuang_version = doip_check(car_type, Architecture=car_TEST) ##配置字刷写完有几率无法connect
     test_info = ssh_check(car_TEST,car_type)
     report.create_guanzhuang_template(diff_client.get_gwm_version(), workflow_id=flow_id)
     report.update_expect_result(diff_client.extract_key_versions())
@@ -393,7 +405,7 @@ if __name__ =='__main__':
     ret = doip_OTA(car_TEST)
     if ret == 'success OTA':
         feishu_test.send_text(ret)
-        ret = AFTER_OTA_CHECK(car_TEST)
+        ret = AFTER_OTA_CHECK(car_TEST,car_type)
         test_result["ota_result"] = "success"
         test_result["ota_dem_status"] =ret["dem_status"]
         test_result["ota_dr_info"] =ret["dr_info"]
