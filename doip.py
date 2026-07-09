@@ -434,12 +434,12 @@ if __name__=='__main__':
     test.route_active()
     # test.write_F1B1_car_config_VIN()
     test.check_guanzhuang_version()
-    # if cartype.upper() in ('ORINX','ORINY'):
-    #     ret = test.ORIN_ota_a_zip()
-    # elif cartype.upper() =='THOR':
-    #     ret = test.THOR_ota_a_zip()
-    # if ret ==0:
-    #     feishu_test.send_text("OTA success")
-    # else:
-    #     feishu_test.send_text(f"OTA FAIL,progress:{ret}")
+    if cartype.upper() in ('ORINX','ORINY'):
+        ret = test.ORIN_ota_a_zip()
+    elif cartype.upper() =='THOR':
+        ret = test.THOR_ota_a_zip()
+    if ret ==0:
+        feishu_test.send_text("OTA success")
+    else:
+        feishu_test.send_text(f"OTA FAIL,progress:{ret}")
     test.sock_close()

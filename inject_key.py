@@ -83,6 +83,7 @@ def inject_default_key():
     enter_EOL = "0a000301020311f1898e"
     enter_password = "13000301020388f807004445534159535638a4"
     default_key = "3c000301020266fa3000ffffffffffffffffffffffffffffffff5ac6a5945f16500911219129984ba8b387a06f24fe383ce4e81a73294065461b9cb3"
+    other_key_soc = "3C0003010302B1C13000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5AC6A5945F16500911219129984BA8B387A06F24FE383CE4E81A73294065461B6F38"
     logout_EOL = "0a000301020322f22cee"
 
     target_ip = "172.16.5.15"
@@ -130,8 +131,8 @@ if __name__ == "__main__":
               sys.exit(-1)
 
     set_network(net)
-    inject_default_key()
-    # inject_other_key()
+    # inject_default_key()
+    inject_other_key()
 
 
     ...
