@@ -1,0 +1,30 @@
+
+[ID_C84017]
+Description = GigaDevice GD25Q64x 64MBit 3.3V Uniform Sector Dual and Quad Serial Flash 
+
+[SFDP]
+0xfff120e5
+0x00ffffff
+0x6b08eb44
+0xbb423b08
+0xffffffee
+0xff00ffff
+0xff00ffff
+0x520f200c
+0xff00d810
+0xfec96233
+0xc714e981
+0x33166300
+0x757a757a
+0x5cd5b3f4
+0xff6c9200
+0x80f83098
+
+
+[FREQ]
+READ = 80
+FAST_READ = 120
+DOR = 100
+QOR = 100
+DIOR = 100
+QIOR = 100
