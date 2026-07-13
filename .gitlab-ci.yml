@@ -1,0 +1,31 @@
+stages:
+  - test
+
+variables:
+  TEST_PLATFORM: "NULL"
+  TEST_CARTYPE: "C01"
+  TEST_FLOWID: "1234567890"
+
+orinx_test:
+  stage: test
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "trigger" && $TEST_PLATFORM == "ORINX"'
+    - when: never
+  script:
+    - echo "Running orinx_test"
+
+oriny_test:
+  stage: test
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "trigger" && $TEST_PLATFORM == "ORINY"'
+    - when: never
+  script:
+    - echo "Running oriny_test"
+
+thor_test:
+  stage: test
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "trigger" && $TEST_PLATFORM == "THOR"'
+    - when: never
+  script:
+    - echo "Running thor_test"

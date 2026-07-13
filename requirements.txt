@@ -1,0 +1,9 @@
+requests
+paramiko
+pyserial
+cryptography
+pyautogui
+pywinauto
+python-can
+opencv-python
+Pillow
