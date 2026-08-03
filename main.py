@@ -61,7 +61,15 @@ class Prework():
         # self.execute(f"sudo ip link set dev mgbe3_0.5 address 02:47:57:4d:00:58")
         self.execute(f"sudo ip link set dev mgbe3_0.5 up")
         print("network setting complete...")
+    def clean_network_config(self):
+        """清除 mgbe3_0.2 和 mgbe3_0.5 网卡配置"""
+        self.execute(f"sudo ip link set dev mgbe3_0.2 down >/dev/null 2>&1 || true")
+        self.execute(f"sudo ip link delete mgbe3_0.2 >/dev/null 2>&1 || true")
+        self.execute(f"sudo ip link set dev mgbe3_0.5 down >/dev/null 2>&1 || true")
+        self.execute(f"sudo ip link delete mgbe3_0.5 >/dev/null 2>&1 || true")
+        print("clean network config complete...")
     def network_prepare(self):
+        self.clean_network_config()
         self.execute(f"sudo ip link set dev {self.net} address 02:47:57:4d:00:58")
         self.doip_net_setup()
         self.key_inject_net_setup()
@@ -168,7 +176,7 @@ def inject_key_check(car_type = 'C01',Architecture = 'ORINX'):
     if Architecture == 'ORINX':
         return None
     else:
-        inject_key.set_network("enx207bd51a13cc")
+        # inject_key.set_network("enx207bd51a13cc")
         import subprocess
         import sys
         
@@ -212,7 +220,7 @@ def inject_key_check(car_type = 'C01',Architecture = 'ORINX'):
             raise Exception(f"无法连接到目标设备 {target_ip}，请检查网卡配置和网络连接")
         
         # 网络连通，继续执行后续操作
-        inject_key.inject_default_key()
+        inject_key.inject_other_key()
         doip_test = DoipClient()
         doip_test.client_setup()
         doip_test.route_active()
@@ -316,7 +324,7 @@ if __name__ =='__main__':
         print("当前支持的车型: " + ", ".join(get_supported_car_types()))
         sys.exit(-1)
 
-    feishu_test = FeishuRobot("https://open.feishu.cn/open-apis/bot/v2/hook/86f13735-aa8e-4dc1-aa6a-258177111a1e")
+    feishu_test = FeishuRobot("https://open.feishu.cn/open-apis/bot/v2/hook/458b4208-1a5b-46c6-b52f-32ce501622a1")
     clean = Prework(architecture=car_TEST)
     clean.network_prepare()
     if(clean.space_check()!=0):
