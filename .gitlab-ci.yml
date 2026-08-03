@@ -1,0 +1,42 @@
+stages:
+  - test
+
+variables:
+  TEST_ROOT: 'C:/Users/zefengchen/Desktop/box_inject_test'
+  TEST_PLATFORM: "NULL"
+  TEST_CARTYPE: "C01"
+  TEST_FLOWID: "1234567890"
+
+orinx_test:
+  stage: test
+  tags:
+    - orinx
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "trigger" && $TEST_PLATFORM == "ORINX"'
+    - when: never
+  script:
+    - Set-Location -Path $env:TEST_ROOT
+    - python windows/auto_flash_all.py "$env:TEST_PLATFORM" "$env:TEST_CARTYPE" "$env:TEST_FLOWID"
+
+
+oriny_test:
+  stage: test
+  tags:
+    - oriny
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "trigger" && $TEST_PLATFORM == "ORINY"'
+    - when: never
+  script:
+    - Set-Location -Path $env:TEST_ROOT
+    - python windows/auto_flash_all.py "$env:TEST_PLATFORM" "$env:TEST_CARTYPE" "$env:TEST_FLOWID"
+
+thor_test:
+  stage: test
+  tags:
+    - thor
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "trigger" && $TEST_PLATFORM == "THOR"'
+    - when: never
+  script:
+    - Set-Location -Path $env:TEST_ROOT
+    - python windows/auto_flash_all.py "$env:TEST_PLATFORM" "$env:TEST_CARTYPE" "$env:TEST_FLOWID"
